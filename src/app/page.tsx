@@ -72,6 +72,18 @@ export default async function Home() {
   const movements = [...paymentMovements, ...cashMovements]
     .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 100);
 
+  const chart = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (5 - index), 1));
+    const key = date.toISOString().slice(0, 7);
+    const monthMovements = [...paymentMovements, ...cashMovements].filter((item) => item.date.startsWith(key));
+    return {
+      key,
+      label: date.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", ""),
+      incomeCents: monthMovements.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amountCents, 0),
+      expenseCents: monthMovements.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amountCents, 0),
+    };
+  });
+
   const monthPayments = payments.filter((item) => item.paid_at.slice(0, 10) >= monthStart);
   const monthCash = cash.filter((item) => item.occurred_on >= monthStart);
   const incomeCents = monthPayments.reduce((sum, item) => sum + Number(item.amount_cents), 0)
@@ -87,6 +99,7 @@ export default async function Home() {
     }))}
     collections={collections}
     movements={movements}
+    chart={chart}
     summary={{
       incomeCents, expenseCents,
       receivableCents: openCollections.reduce((sum, item) => sum + item.outstandingCents, 0),

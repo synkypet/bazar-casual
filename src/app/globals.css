@@ -16,6 +16,7 @@
 }
 
 * { box-sizing: border-box; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 html { overflow-x: hidden; background: var(--canvas); }
 body { width: 100%; min-width: 0; margin: 0; overflow-x: hidden; min-height: 100vh; background: var(--canvas); color: var(--ink); font-family: var(--font-geist), Arial, sans-serif; }
 button, input, select, textarea { font: inherit; }
@@ -87,6 +88,23 @@ h1 { margin: 0; font-size: clamp(1.55rem, 4.8vw, 2.2rem); letter-spacing: -.04em
 .icon-badge.pink { background: var(--pink-soft); color: var(--pink-dark); }
 .icon-badge.green { background: var(--green-soft); color: var(--green); }
 .icon-badge.amber { background: var(--amber-soft); color: var(--amber); }
+
+.chart-card { margin-top: 14px; border: 1px solid var(--line); border-radius: 20px; background: white; padding: 20px 21px 17px; }
+.chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.chart-heading h2 { margin: 0; font-size: 1.12rem; letter-spacing: -.025em; }
+.chart-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 13px; color: var(--muted); font-size: .69rem; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.chart-legend i { width: 8px; height: 8px; border-radius: 3px; }
+.chart-legend i.income { background: var(--pink); }
+.chart-legend i.expense { background: #d6c8cf; }
+.bar-chart { display: grid; height: 190px; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: 9px; margin-top: 18px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 46px, #f5f0f3 47px); }
+.chart-month { display: grid; height: 100%; grid-template-rows: minmax(0, 1fr) 27px; align-items: end; gap: 7px; text-align: center; }
+.bar-pair { display: flex; height: 100%; align-items: flex-end; justify-content: center; gap: 4px; }
+.chart-bar { display: block; width: min(16px, 42%); min-height: 3px; border-radius: 6px 6px 2px 2px; transition: height .25s ease; }
+.chart-bar.income { background: linear-gradient(180deg, #ff5b9d, var(--pink)); }
+.chart-bar.expense { background: #d6c8cf; }
+.chart-month > strong { overflow: hidden; color: var(--muted); font-size: .68rem; font-weight: 700; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+.chart-empty { display: flex; min-height: 145px; align-items: center; justify-content: center; gap: 9px; color: var(--muted); font-size: .78rem; text-align: center; }
 
 .content-grid { display: grid; gap: 14px; margin-top: 14px; }
 .attention-card, .start-card { border: 1px solid var(--line); border-radius: 20px; background: white; padding: 21px; }
@@ -247,6 +265,10 @@ h1 { margin: 0; font-size: clamp(1.55rem, 4.8vw, 2.2rem); letter-spacing: -.04em
   .balance-panel { gap: 16px; margin-top: 19px; border-radius: 18px; padding: 20px; }
   .balance-main > strong { font-size: clamp(1.9rem, 10vw, 2.45rem); }
   .attention-card, .start-card, .settings-card { border-radius: 17px; padding: 17px; }
+  .chart-card { border-radius: 17px; padding: 17px 13px 13px; }
+  .chart-heading { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .chart-legend { justify-content: flex-start; }
+  .bar-chart { height: 165px; gap: 5px; margin-top: 13px; }
   .page-heading { align-items: stretch; flex-direction: column; }
   .page-heading .primary-button { width: 100%; }
   .collection-row { grid-template-columns: minmax(0, 1fr) auto; gap: 9px 12px; padding: 15px; }

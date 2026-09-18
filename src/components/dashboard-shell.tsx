@@ -22,11 +22,13 @@ type Collection = {
   status: string; overdue: boolean;
 };
 type Movement = { id: string; kind: "income" | "expense"; date: string; label: string; detail: string; amountCents: number };
+type ChartMonth = { key: string; label: string; incomeCents: number; expenseCents: number };
 type Props = {
   profile: { displayName: string; dueAlertDays: number };
   customers: Customer[];
   collections: Collection[];
   movements: Movement[];
+  chart: ChartMonth[];
   summary: { incomeCents: number; expenseCents: number; receivableCents: number; overdueCents: number; soonCents: number };
 };
 
@@ -50,6 +52,27 @@ function MoneyCard({ label, value, icon: Icon, tone, onClick }: {
   label: string; value: string; icon: typeof WalletCards; tone: "pink" | "green" | "amber"; onClick: () => void;
 }) {
   return <button className="money-card" onClick={onClick}><span className={`icon-badge ${tone}`}><Icon size={18} /></span><div><p>{label}</p><strong>{value}</strong></div><ArrowRight className="card-arrow" size={16} /></button>;
+}
+
+function CashFlowChart({ months }: { months: ChartMonth[] }) {
+  const largest = Math.max(1, ...months.flatMap((month) => [month.incomeCents, month.expenseCents]));
+  const hasData = months.some((month) => month.incomeCents || month.expenseCents);
+
+  return <section className="chart-card" aria-labelledby="cash-flow-title">
+    <div className="chart-heading">
+      <div><p className="eyebrow">Evolução</p><h2 id="cash-flow-title">Entradas e despesas</h2></div>
+      <div className="chart-legend" aria-label="Legenda"><span><i className="income" />Entradas</span><span><i className="expense" />Despesas</span></div>
+    </div>
+    {hasData ? <div className="bar-chart" aria-label="Movimentação financeira dos últimos seis meses">
+      {months.map((month) => <div className="chart-month" key={month.key}>
+        <div className="bar-pair">
+          <span className="chart-bar income" style={{ height: `${Math.max(3, month.incomeCents / largest * 100)}%` }} title={`${month.label}: entradas de ${money(month.incomeCents)}`}><span className="sr-only">Entradas: {money(month.incomeCents)}</span></span>
+          <span className="chart-bar expense" style={{ height: `${Math.max(3, month.expenseCents / largest * 100)}%` }} title={`${month.label}: despesas de ${money(month.expenseCents)}`}><span className="sr-only">Despesas: {money(month.expenseCents)}</span></span>
+        </div>
+        <strong>{month.label}</strong>
+      </div>)}
+    </div> : <div className="chart-empty"><CircleDollarSign size={22} /><span>O gráfico aparece conforme as movimentações forem registradas.</span></div>}
+  </section>;
 }
 
 function CustomerPicker({ customers, selectedId, onSelect }: {
@@ -116,7 +139,7 @@ function CustomerPicker({ customers, selectedId, onSelect }: {
   </div>;
 }
 
-export function DashboardShell({ profile, customers, collections, movements, summary }: Props) {
+export function DashboardShell({ profile, customers, collections, movements, chart, summary }: Props) {
   const [view, setView] = useState<View>("home");
   const [modal, setModal] = useState<Modal>(null);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
@@ -167,6 +190,7 @@ export function DashboardShell({ profile, customers, collections, movements, sum
         <div className="dashboard-heading"><div><p className="eyebrow">Visão geral</p><h1>Olá! Vamos organizar o caixa?</h1><p className="heading-copy">Acompanhe o que entrou, saiu e ainda falta receber.</p></div><span className="period-label">Este mês</span></div>
         <section className="balance-panel" aria-label="Resumo do caixa"><div className="balance-main"><div className="balance-label"><span>Saldo do período</span><CircleDollarSign size={19} /></div><strong>{money(balance)}</strong><p>{summary.incomeCents || summary.expenseCents ? "Valores registrados neste mês." : "Você ainda não registrou movimentações neste mês."}</p></div><div className="balance-divider" /><div className="balance-stat"><span className="stat-icon income"><ArrowDownLeft size={17} /></span><div><span>Entradas</span><strong>{money(summary.incomeCents)}</strong></div></div><div className="balance-stat"><span className="stat-icon expense"><ArrowUpRight size={17} /></span><div><span>Despesas</span><strong>{money(summary.expenseCents)}</strong></div></div></section>
         <section className="money-grid"><MoneyCard label="A receber" value={money(summary.receivableCents)} icon={WalletCards} tone="pink" onClick={() => navigate("collections")} /><MoneyCard label="Em atraso" value={money(summary.overdueCents)} icon={Bell} tone="amber" onClick={() => navigate("collections")} /><MoneyCard label="Vencem em breve" value={money(summary.soonCents)} icon={HandCoins} tone="green" onClick={() => navigate("collections")} /></section>
+        <CashFlowChart months={chart} />
         <div className="content-grid"><section className="attention-card"><div className="section-title-row"><div><p className="eyebrow">Cobranças</p><h2>Precisa de atenção</h2></div><button className="text-button" onClick={() => navigate("collections")}>Ver todas <ArrowRight size={16} /></button></div>{collections.length ? <div className="alert-list">{collections.slice(0, 4).map((item) => <button className="alert-row" onClick={() => openPayment(item)} key={item.id}><span className={item.overdue ? "alert-dot overdue" : "alert-dot"} /><span><strong>{item.customer}</strong><small>{item.description} · vence {dateLabel(item.dueDate)}</small></span><b>{money(item.outstandingCents)}</b></button>)}</div> : <EmptyState icon={Bell} title="Tudo em dia por aqui" copy="Quando uma parcela estiver próxima ou atrasada, ela aparece neste espaço." />}</section>
         <section className="start-card"><span className="start-kicker">REGISTRO RÁPIDO</span><h2>Seu controle começa aqui</h2><p>Cadastre uma cliente ou registre a primeira movimentação do bazar.</p><div className="start-actions"><button className="primary-button" onClick={() => open("menu")}><Plus size={18} />Registrar agora</button><button className="secondary-button" onClick={() => open("customer")}><Users size={18} />Nova cliente</button></div></section></div>
       </section>}
