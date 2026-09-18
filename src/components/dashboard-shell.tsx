@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, CheckCircle2, CircleDollarSign,
-  HandCoins, Home, LogOut, Menu, Phone, Plus, ReceiptText, Settings,
+  HandCoins, Home, LogOut, Menu, Phone, Plus, ReceiptText, Search, Settings,
   ShoppingBag, SlidersHorizontal, Users, WalletCards, X,
 } from "lucide-react";
 import {
@@ -40,6 +40,7 @@ const navItems: { view: View; label: string; icon: typeof Home; desktopOnly?: bo
 const money = (cents: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 const today = () => new Date().toISOString().slice(0, 10);
 const dateLabel = (date: string) => new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR");
+const searchable = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
 
 function EmptyState({ icon: Icon, title, copy }: { icon: typeof Bell; title: string; copy: string }) {
   return <div className="empty-attention"><span className="empty-icon"><Icon size={24} /></span><strong>{title}</strong><p>{copy}</p></div>;
@@ -51,6 +52,70 @@ function MoneyCard({ label, value, icon: Icon, tone, onClick }: {
   return <button className="money-card" onClick={onClick}><span className={`icon-badge ${tone}`}><Icon size={18} /></span><div><p>{label}</p><strong>{value}</strong></div><ArrowRight className="card-arrow" size={16} /></button>;
 }
 
+function CustomerPicker({ customers, selectedId, onSelect }: {
+  customers: Customer[]; selectedId: string; onSelect: (id: string) => void;
+}) {
+  const selected = customers.find((customer) => customer.id === selectedId);
+  const [query, setQuery] = useState(selected?.name ?? "");
+  const [isOpen, setIsOpen] = useState(false);
+  const normalizedQuery = searchable(query.trim());
+  const matches = customers
+    .filter((customer) => !normalizedQuery || searchable(customer.name).includes(normalizedQuery))
+    .slice(0, 8);
+
+  const choose = (customer: Customer) => {
+    setQuery(customer.name);
+    onSelect(customer.id);
+    setIsOpen(false);
+  };
+
+  return <div className="customer-picker">
+    <label htmlFor="sale-customer">Cliente</label>
+    <div className="customer-picker-control">
+      <Search size={18} aria-hidden="true" />
+      <input
+        id="sale-customer"
+        value={query}
+        placeholder="Digite o nome da cliente"
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-controls="customer-options"
+        aria-autocomplete="list"
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        onChange={(event) => {
+          const value = event.target.value;
+          const exact = customers.find((customer) => searchable(customer.name) === searchable(value.trim()));
+          setQuery(value);
+          onSelect(exact?.id ?? "");
+          setIsOpen(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && isOpen && matches[0]) {
+            event.preventDefault();
+            choose(matches[0]);
+          }
+          if (event.key === "Escape") setIsOpen(false);
+        }}
+      />
+      <input className="customer-id-field" name="customer_id" value={selectedId} readOnly tabIndex={-1} aria-hidden="true" />
+      {isOpen && <div className="customer-options" id="customer-options" role="listbox">
+        {matches.length ? matches.map((customer) => <button
+          type="button"
+          role="option"
+          aria-selected={customer.id === selectedId}
+          className={customer.id === selectedId ? "selected" : ""}
+          key={customer.id}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => choose(customer)}
+        ><strong>{customer.name}</strong><small>{customer.phone || "Sem telefone"}</small></button>) : <span className="customer-empty">Nenhuma cliente encontrada.</span>}
+      </div>}
+    </div>
+    {selected && <small className="selected-customer">Selecionada: {selected.name}</small>}
+  </div>;
+}
+
 export function DashboardShell({ profile, customers, collections, movements, summary }: Props) {
   const [view, setView] = useState<View>("home");
   const [modal, setModal] = useState<Modal>(null);
@@ -59,12 +124,13 @@ export function DashboardShell({ profile, customers, collections, movements, sum
   const [formSuccess, setFormSuccess] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saleMode, setSaleMode] = useState<"paid_now" | "credit" | "installments">("paid_now");
+  const [saleCustomerId, setSaleCustomerId] = useState("");
   const balance = summary.incomeCents - summary.expenseCents;
   const activeCustomers = customers.filter((customer) => customer.isActive);
   const overdue = collections.filter((item) => item.overdue);
 
   const close = () => { setModal(null); setSelectedCollection(null); setFormError(""); };
-  const open = (next: Exclude<Modal, null>) => { setFormError(""); setFormSuccess(""); if (next === "sale") setSaleMode("paid_now"); setModal(next); };
+  const open = (next: Exclude<Modal, null>) => { setFormError(""); setFormSuccess(""); if (next === "sale") { setSaleMode("paid_now"); setSaleCustomerId(""); } setModal(next); };
   const navigate = (next: View) => { setView(next); close(); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openPayment = (collection: Collection) => { setSelectedCollection(collection); open("payment"); };
   const run = (action: (data: FormData) => Promise<ActionResult>, success: string) => async (data: FormData) => {
@@ -123,7 +189,7 @@ export function DashboardShell({ profile, customers, collections, movements, sum
       {formError && modal !== "more" && <p className="form-message error">{formError}</p>}
       {modal === "customer" && <form className="entry-form" action={run(createCustomer, "Cliente cadastrada.")}><label>Nome<input name="name" required autoFocus /></label><label>WhatsApp<input name="phone" inputMode="tel" placeholder="(00) 00000-0000" /></label><button className="primary-button" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar cliente"}</button></form>}
       {modal === "cash" && <form className="entry-form" action={run(createCashEntry, "Movimentação registrada.")}><label>Tipo<select name="direction"><option value="expense">Despesa</option><option value="income">Entrada extra</option></select></label><label>Descrição<input name="description" required autoFocus placeholder="Ex.: sacolas para entrega" /></label><label>Categoria<input name="category" required defaultValue="Outros" /></label><label>Valor<input name="amount" required inputMode="decimal" placeholder="0,00" /></label><label>Data<input name="occurred_on" type="date" required defaultValue={today()} /></label><button className="primary-button" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar movimentação"}</button></form>}
-      {modal === "sale" && <form className="entry-form" action={run(createSale, "Venda registrada.")}><label>Cliente<select name="customer_id" required defaultValue=""><option value="" disabled>Selecione</option>{activeCustomers.map((customer) => <option value={customer.id} key={customer.id}>{customer.name}</option>)}</select></label>{!activeCustomers.length && <p className="form-hint">Cadastre uma cliente antes da primeira venda.</p>}<label>Descrição<input name="description" placeholder="Ex.: vestido floral" /></label><label>Valor total<input name="amount" required inputMode="decimal" placeholder="0,00" /></label><label>Forma<select name="mode" value={saleMode} onChange={(event) => setSaleMode(event.target.value as typeof saleMode)}><option value="paid_now">Pago agora</option><option value="credit">Fiado</option><option value="installments">Parcelado</option></select></label><input type="hidden" name="sold_on" value={today()} />{saleMode === "paid_now" ? <input type="hidden" name="due_date" value={today()} /> : <label>{saleMode === "credit" ? "Data de vencimento" : "Primeiro vencimento"}<input name="due_date" type="date" required defaultValue={today()} /></label>}{saleMode === "installments" ? <label>Quantidade de parcelas<input name="installment_count" type="number" min="2" max="12" defaultValue="2" /></label> : <input type="hidden" name="installment_count" value="1" />}<button className="primary-button" disabled={!activeCustomers.length || isSaving}>{isSaving ? "Salvando..." : "Salvar venda"}</button></form>}
+      {modal === "sale" && <form className="entry-form" action={run(createSale, "Venda registrada.")}><CustomerPicker customers={activeCustomers} selectedId={saleCustomerId} onSelect={setSaleCustomerId} />{!activeCustomers.length && <p className="form-hint">Cadastre uma cliente antes da primeira venda.</p>}<label>Descrição<input name="description" placeholder="Ex.: vestido floral" /></label><label>Valor total<input name="amount" required inputMode="decimal" placeholder="0,00" /></label><label>Forma<select name="mode" value={saleMode} onChange={(event) => setSaleMode(event.target.value as typeof saleMode)}><option value="paid_now">Pago agora</option><option value="credit">Fiado</option><option value="installments">Parcelado</option></select></label><input type="hidden" name="sold_on" value={today()} />{saleMode === "paid_now" ? <input type="hidden" name="due_date" value={today()} /> : <label>{saleMode === "credit" ? "Data de vencimento" : "Primeiro vencimento"}<input name="due_date" type="date" required defaultValue={today()} /></label>}{saleMode === "installments" ? <label>Quantidade de parcelas<input name="installment_count" type="number" min="2" max="12" defaultValue="2" /></label> : <input type="hidden" name="installment_count" value="1" />}<button className="primary-button" disabled={!saleCustomerId || isSaving}>{isSaving ? "Salvando..." : "Salvar venda"}</button></form>}
       {modal === "payment" && selectedCollection && <form className="entry-form" action={run(recordPayment, "Pagamento registrado.")}><div className="payment-summary"><strong>{selectedCollection.customer}</strong><span>{selectedCollection.description} · saldo {money(selectedCollection.outstandingCents)}</span></div><input type="hidden" name="installment_id" value={selectedCollection.id} /><label>Valor recebido<input name="amount" required inputMode="decimal" defaultValue={(selectedCollection.outstandingCents / 100).toFixed(2).replace(".", ",")} /></label><label>Forma de pagamento<select name="method"><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="transfer">Transferência</option><option value="other">Outra</option></select></label><button className="primary-button" disabled={isSaving}>{isSaving ? "Salvando..." : "Confirmar recebimento"}</button></form>}
     </section></div>}
   </div>;
