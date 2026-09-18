@@ -97,10 +97,13 @@ h1 { margin: 0; font-size: clamp(1.55rem, 4.8vw, 2.2rem); letter-spacing: -.04em
 .chart-legend i { width: 8px; height: 8px; border-radius: 3px; }
 .chart-legend i.income { background: var(--pink); }
 .chart-legend i.expense { background: #d6c8cf; }
-.bar-chart { display: grid; height: 190px; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: 9px; margin-top: 18px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 46px, #f5f0f3 47px); }
+.chart-legend i.trend { width: 13px; height: 3px; border-radius: 999px; background: #7d274d; }
+.bar-chart { position: relative; display: grid; height: 190px; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: 9px; margin-top: 18px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 46px, #f5f0f3 47px); }
+.trend-line { position: absolute; top: 0; right: 0; left: 0; z-index: 3; width: 100%; height: calc(100% - 34px); overflow: visible; pointer-events: none; }
+.trend-line polyline { fill: none; stroke: #7d274d; stroke-width: 3; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
 .chart-month { display: grid; height: 100%; grid-template-rows: minmax(0, 1fr) 27px; align-items: end; gap: 7px; text-align: center; }
 .bar-pair { display: flex; height: 100%; align-items: flex-end; justify-content: center; gap: 4px; }
-.chart-bar { display: block; width: min(16px, 42%); min-height: 3px; border-radius: 6px 6px 2px 2px; transition: height .25s ease; }
+.chart-bar { position: relative; z-index: 2; display: block; width: min(16px, 42%); min-height: 3px; border-radius: 6px 6px 2px 2px; transition: height .25s ease; }
 .chart-bar.income { background: linear-gradient(180deg, #ff5b9d, var(--pink)); }
 .chart-bar.expense { background: #d6c8cf; }
 .chart-month > strong { overflow: hidden; color: var(--muted); font-size: .68rem; font-weight: 700; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }

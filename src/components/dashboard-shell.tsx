@@ -57,13 +57,18 @@ function MoneyCard({ label, value, icon: Icon, tone, onClick }: {
 function CashFlowChart({ months }: { months: ChartMonth[] }) {
   const largest = Math.max(1, ...months.flatMap((month) => [month.incomeCents, month.expenseCents]));
   const hasData = months.some((month) => month.incomeCents || month.expenseCents);
+  const trendPoints = months.map((month, index) => `${50 + index * 100},${Math.max(4, 100 - month.incomeCents / largest * 96)}`).join(" ");
 
   return <section className="chart-card" aria-labelledby="cash-flow-title">
     <div className="chart-heading">
       <div><p className="eyebrow">Evolução</p><h2 id="cash-flow-title">Entradas e despesas</h2></div>
-      <div className="chart-legend" aria-label="Legenda"><span><i className="income" />Entradas</span><span><i className="expense" />Despesas</span></div>
+      <div className="chart-legend" aria-label="Legenda"><span><i className="income" />Entradas</span><span><i className="expense" />Despesas</span><span><i className="trend" />Tendência</span></div>
     </div>
     {hasData ? <div className="bar-chart" aria-label="Movimentação financeira dos últimos seis meses">
+      <svg className="trend-line" viewBox="0 0 600 100" preserveAspectRatio="none" aria-hidden="true">
+        <polyline points={trendPoints} />
+      </svg>
+      <span className="sr-only">A linha de tendência acompanha o valor das entradas mês a mês.</span>
       {months.map((month) => <div className="chart-month" key={month.key}>
         <div className="bar-pair">
           <span className="chart-bar income" style={{ height: `${Math.max(3, month.incomeCents / largest * 100)}%` }} title={`${month.label}: entradas de ${money(month.incomeCents)}`}><span className="sr-only">Entradas: {money(month.incomeCents)}</span></span>
