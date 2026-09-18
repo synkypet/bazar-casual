@@ -68,10 +68,12 @@ export async function createSale(formData: FormData): Promise<ActionResult> {
       customer_id: z.string().uuid(), description: optionalText,
       sold_on: z.string().date(), mode: z.enum(["paid_now", "credit", "installments"]),
       due_date: z.string().date(), installment_count: z.coerce.number().int().min(1).max(12),
+      installment_frequency: z.enum(["monthly", "biweekly", "weekly"]),
     }).safeParse({
       customer_id: formData.get("customer_id"), description: formData.get("description"),
       sold_on: formData.get("sold_on"), mode: formData.get("mode"),
       due_date: formData.get("due_date"), installment_count: formData.get("installment_count") || 1,
+      installment_frequency: formData.get("installment_frequency") || "monthly",
     });
     if (!parsed.success || !Number.isSafeInteger(amountCents) || amountCents <= 0) {
       return { ok: false, error: "Confira cliente, valor e datas da venda." };
@@ -89,7 +91,9 @@ export async function createSale(formData: FormData): Promise<ActionResult> {
     const base = Math.floor(amountCents / count);
     const installments = Array.from({ length: count }, (_, index) => {
       const due = new Date(`${parsed.data.due_date}T12:00:00`);
-      due.setMonth(due.getMonth() + index);
+      if (parsed.data.installment_frequency === "weekly") due.setDate(due.getDate() + index * 7);
+      else if (parsed.data.installment_frequency === "biweekly") due.setDate(due.getDate() + index * 15);
+      else due.setMonth(due.getMonth() + index);
       return {
         owner_id: ownerId, sale_id: sale.id, installment_number: index + 1,
         due_date: due.toISOString().slice(0, 10),

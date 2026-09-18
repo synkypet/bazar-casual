@@ -58,25 +58,28 @@ function CashFlowChart({ months }: { months: ChartMonth[] }) {
   const largest = Math.max(1, ...months.flatMap((month) => [month.incomeCents, month.expenseCents]));
   const hasData = months.some((month) => month.incomeCents || month.expenseCents);
   const trendPoints = months.map((month, index) => `${50 + index * 100},${Math.max(4, 100 - month.incomeCents / largest * 96)}`).join(" ");
+  const chartWidth = Math.max(620, months.length * 42);
 
   return <section className="chart-card" aria-labelledby="cash-flow-title">
     <div className="chart-heading">
-      <div><p className="eyebrow">Evolução</p><h2 id="cash-flow-title">Entradas e despesas</h2></div>
+      <div><p className="eyebrow">Este mês · por dia</p><h2 id="cash-flow-title">Movimento diário</h2></div>
       <div className="chart-legend" aria-label="Legenda"><span><i className="income" />Entradas</span><span><i className="expense" />Despesas</span><span><i className="trend" />Tendência</span></div>
     </div>
-    {hasData ? <div className="bar-chart" aria-label="Movimentação financeira dos últimos seis meses">
-      <svg className="trend-line" viewBox="0 0 600 100" preserveAspectRatio="none" aria-hidden="true">
-        <polyline points={trendPoints} />
-      </svg>
-      <span className="sr-only">A linha de tendência acompanha o valor das entradas mês a mês.</span>
-      {months.map((month) => <div className="chart-month" key={month.key}>
-        <div className="bar-pair">
-          <span className="chart-bar income" style={{ height: `${Math.max(3, month.incomeCents / largest * 100)}%` }} title={`${month.label}: entradas de ${money(month.incomeCents)}`}><span className="sr-only">Entradas: {money(month.incomeCents)}</span></span>
-          <span className="chart-bar expense" style={{ height: `${Math.max(3, month.expenseCents / largest * 100)}%` }} title={`${month.label}: despesas de ${money(month.expenseCents)}`}><span className="sr-only">Despesas: {money(month.expenseCents)}</span></span>
-        </div>
-        <strong>{month.label}</strong>
-      </div>)}
-    </div> : <div className="chart-empty"><CircleDollarSign size={22} /><span>O gráfico aparece conforme as movimentações forem registradas.</span></div>}
+    {hasData ? <div className="chart-scroll">
+      <div className="bar-chart" style={{ width: chartWidth, gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))` }} aria-label="Movimentação financeira diária do mês atual">
+        <svg className="trend-line" viewBox={`0 0 ${months.length * 100} 100`} preserveAspectRatio="none" aria-hidden="true">
+          <polyline points={trendPoints} />
+        </svg>
+        <span className="sr-only">A linha de tendência acompanha o valor das entradas a cada dia.</span>
+        {months.map((month) => <div className="chart-month" key={month.key}>
+          <div className="bar-pair">
+            <span className="chart-bar income" style={{ height: `${Math.max(3, month.incomeCents / largest * 100)}%` }} title={`Dia ${month.label}: entradas de ${money(month.incomeCents)}`}><span className="sr-only">Dia {month.label}, entradas: {money(month.incomeCents)}</span></span>
+            <span className="chart-bar expense" style={{ height: `${Math.max(3, month.expenseCents / largest * 100)}%` }} title={`Dia ${month.label}: despesas de ${money(month.expenseCents)}`}><span className="sr-only">Dia {month.label}, despesas: {money(month.expenseCents)}</span></span>
+          </div>
+          <strong>{month.label}</strong>
+        </div>)}
+      </div>
+    </div> : <div className="chart-empty"><CircleDollarSign size={22} /><span>O gráfico diário aparece conforme as movimentações deste mês forem registradas.</span></div>}
   </section>;
 }
 
@@ -218,7 +221,7 @@ export function DashboardShell({ profile, customers, collections, movements, cha
       {formError && modal !== "more" && <p className="form-message error">{formError}</p>}
       {modal === "customer" && <form className="entry-form" action={run(createCustomer, "Cliente cadastrada.")}><label>Nome<input name="name" required autoFocus /></label><label>WhatsApp<input name="phone" inputMode="tel" placeholder="(00) 00000-0000" /></label><button className="primary-button" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar cliente"}</button></form>}
       {modal === "cash" && <form className="entry-form" action={run(createCashEntry, "Movimentação registrada.")}><label>Tipo<select name="direction"><option value="expense">Despesa</option><option value="income">Entrada extra</option></select></label><label>Descrição<input name="description" required autoFocus placeholder="Ex.: sacolas para entrega" /></label><label>Categoria<input name="category" required defaultValue="Outros" /></label><label>Valor<input name="amount" required inputMode="decimal" placeholder="0,00" /></label><label>Data<input name="occurred_on" type="date" required defaultValue={today()} /></label><button className="primary-button" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar movimentação"}</button></form>}
-      {modal === "sale" && <form className="entry-form" action={run(createSale, "Venda registrada.")}><CustomerPicker customers={activeCustomers} selectedId={saleCustomerId} onSelect={setSaleCustomerId} />{!activeCustomers.length && <p className="form-hint">Cadastre uma cliente antes da primeira venda.</p>}<label>Descrição<input name="description" placeholder="Ex.: vestido floral" /></label><label>Valor total<input name="amount" required inputMode="decimal" placeholder="0,00" /></label><label>Forma<select name="mode" value={saleMode} onChange={(event) => setSaleMode(event.target.value as typeof saleMode)}><option value="paid_now">Pago agora</option><option value="credit">Fiado</option><option value="installments">Parcelado</option></select></label><input type="hidden" name="sold_on" value={today()} />{saleMode === "paid_now" ? <input type="hidden" name="due_date" value={today()} /> : <label>{saleMode === "credit" ? "Data de vencimento" : "Primeiro vencimento"}<input name="due_date" type="date" required defaultValue={today()} /></label>}{saleMode === "installments" ? <label>Quantidade de parcelas<input name="installment_count" type="number" min="2" max="12" defaultValue="2" /></label> : <input type="hidden" name="installment_count" value="1" />}<button className="primary-button" disabled={!saleCustomerId || isSaving}>{isSaving ? "Salvando..." : "Salvar venda"}</button></form>}
+      {modal === "sale" && <form className="entry-form" action={run(createSale, "Venda registrada.")}><CustomerPicker customers={activeCustomers} selectedId={saleCustomerId} onSelect={setSaleCustomerId} />{!activeCustomers.length && <p className="form-hint">Cadastre uma cliente antes da primeira venda.</p>}<label>Descrição<input name="description" placeholder="Ex.: vestido floral" /></label><label>Valor total<input name="amount" required inputMode="decimal" placeholder="0,00" /></label><label>Forma<select name="mode" value={saleMode} onChange={(event) => setSaleMode(event.target.value as typeof saleMode)}><option value="paid_now">Pago agora</option><option value="credit">Fiado</option><option value="installments">Parcelado</option></select></label><input type="hidden" name="sold_on" value={today()} />{saleMode === "paid_now" ? <input type="hidden" name="due_date" value={today()} /> : <label>{saleMode === "credit" ? "Data de vencimento" : "Primeiro vencimento"}<input name="due_date" type="date" required defaultValue={today()} /></label>}{saleMode === "installments" ? <><label>Frequência<select name="installment_frequency" defaultValue="monthly"><option value="monthly">Mensal</option><option value="biweekly">Quinzenal</option><option value="weekly">Semanal</option></select></label><label>Quantidade de parcelas<input name="installment_count" type="number" min="2" max="12" defaultValue="2" /></label></> : <><input type="hidden" name="installment_frequency" value="monthly" /><input type="hidden" name="installment_count" value="1" /></>}<button className="primary-button" disabled={!saleCustomerId || isSaving}>{isSaving ? "Salvando..." : "Salvar venda"}</button></form>}
       {modal === "payment" && selectedCollection && <form className="entry-form" action={run(recordPayment, "Pagamento registrado.")}><div className="payment-summary"><strong>{selectedCollection.customer}</strong><span>{selectedCollection.description} · saldo {money(selectedCollection.outstandingCents)}</span></div><input type="hidden" name="installment_id" value={selectedCollection.id} /><label>Valor recebido<input name="amount" required inputMode="decimal" defaultValue={(selectedCollection.outstandingCents / 100).toFixed(2).replace(".", ",")} /></label><label>Forma de pagamento<select name="method"><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="transfer">Transferência</option><option value="other">Outra</option></select></label><button className="primary-button" disabled={isSaving}>{isSaving ? "Salvando..." : "Confirmar recebimento"}</button></form>}
     </section></div>}
   </div>;

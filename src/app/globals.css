@@ -98,7 +98,8 @@ h1 { margin: 0; font-size: clamp(1.55rem, 4.8vw, 2.2rem); letter-spacing: -.04em
 .chart-legend i.income { background: var(--pink); }
 .chart-legend i.expense { background: #d6c8cf; }
 .chart-legend i.trend { width: 13px; height: 3px; border-radius: 999px; background: #7d274d; }
-.bar-chart { position: relative; display: grid; height: 190px; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: 9px; margin-top: 18px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 46px, #f5f0f3 47px); }
+.chart-scroll { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #dfd2d9 transparent; }
+.bar-chart { position: relative; display: grid; height: 190px; align-items: end; gap: 5px; margin-top: 18px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 46px, #f5f0f3 47px); }
 .trend-line { position: absolute; top: 0; right: 0; left: 0; z-index: 3; width: 100%; height: calc(100% - 34px); overflow: visible; pointer-events: none; }
 .trend-line polyline { fill: none; stroke: #7d274d; stroke-width: 3; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
 .chart-month { display: grid; height: 100%; grid-template-rows: minmax(0, 1fr) 27px; align-items: end; gap: 7px; text-align: center; }
@@ -271,7 +272,7 @@ h1 { margin: 0; font-size: clamp(1.55rem, 4.8vw, 2.2rem); letter-spacing: -.04em
   .chart-card { border-radius: 17px; padding: 17px 13px 13px; }
   .chart-heading { align-items: flex-start; flex-direction: column; gap: 9px; }
   .chart-legend { justify-content: flex-start; }
-  .bar-chart { height: 165px; gap: 5px; margin-top: 13px; }
+  .bar-chart { height: 165px; gap: 4px; margin-top: 13px; }
   .page-heading { align-items: stretch; flex-direction: column; }
   .page-heading .primary-button { width: 100%; }
   .collection-row { grid-template-columns: minmax(0, 1fr) auto; gap: 9px 12px; padding: 15px; }

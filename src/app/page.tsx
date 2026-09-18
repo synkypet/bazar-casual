@@ -72,15 +72,16 @@ export default async function Home() {
   const movements = [...paymentMovements, ...cashMovements]
     .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 100);
 
-  const chart = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (5 - index), 1));
-    const key = date.toISOString().slice(0, 7);
-    const monthMovements = [...paymentMovements, ...cashMovements].filter((item) => item.date.startsWith(key));
+  const currentDate = new Date(`${today}T12:00:00`);
+  const chart = Array.from({ length: currentDate.getDate() }, (_, index) => {
+    const day = index + 1;
+    const key = `${today.slice(0, 8)}${String(day).padStart(2, "0")}`;
+    const dayMovements = [...paymentMovements, ...cashMovements].filter((item) => item.date === key);
     return {
       key,
-      label: date.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", ""),
-      incomeCents: monthMovements.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amountCents, 0),
-      expenseCents: monthMovements.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amountCents, 0),
+      label: String(day).padStart(2, "0"),
+      incomeCents: dayMovements.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amountCents, 0),
+      expenseCents: dayMovements.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amountCents, 0),
     };
   });
 
